@@ -70,19 +70,6 @@ def get_kk_img(sum_mv: tuple[int, int]) -> pg.Surface:
     """
     移動量の合計値タプルに対応する向きの画像Surfaceを返す
     """
-    # direction_map = {
-    #     (-5, 0): "fig/3.png",
-    #     (+5, 0): "fig/3.png",
-    #     (0, -5): "fig/3.png",
-    #     (0, +5): "fig/3.png",
-    #     (-5, -5): "fig/3.png",
-    #     (-5, +5): "fig/3.png",
-    #     (+5, -5): "fig/3.png",
-    #     (+5, +5): "fig/3.png",
-    #     (0, 0): "fig/3.png",  # 動かない時の画像
-    # }
-    # img_path = direction_map.get(sum_mv, "fig/3.png")
-    # return pg.transform.rotozoom(pg.image.load(img_path), 0, 0.9)
 
     kk_images = {
     (0, -5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1),      # 上
