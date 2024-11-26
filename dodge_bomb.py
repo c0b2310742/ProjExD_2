@@ -66,17 +66,51 @@ def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
         bb_imgs.append(bb_img)
     return bb_imgs, accs
 
+def get_kk_img(sum_mv: tuple[int, int]) -> pg.Surface:
+    """
+    移動量の合計値タプルに対応する向きの画像Surfaceを返す
+    """
+    # direction_map = {
+    #     (-5, 0): "fig/3.png",
+    #     (+5, 0): "fig/3.png",
+    #     (0, -5): "fig/3.png",
+    #     (0, +5): "fig/3.png",
+    #     (-5, -5): "fig/3.png",
+    #     (-5, +5): "fig/3.png",
+    #     (+5, -5): "fig/3.png",
+    #     (+5, +5): "fig/3.png",
+    #     (0, 0): "fig/3.png",  # 動かない時の画像
+    # }
+    # img_path = direction_map.get(sum_mv, "fig/3.png")
+    # return pg.transform.rotozoom(pg.image.load(img_path), 0, 0.9)
+
+    kk_images = {
+    (0, -5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1),      # 上
+    (0, 5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1),     # 下
+    (-5, 0): pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1),      # 左
+    (5, 0): pg.transform.flip(pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1), True, False),  # 右（反転）
+    (-5, -5): pg.transform.rotozoom(pg.image.load("fig/3.png"), -45, 1),    # 左上
+    (5, -5): pg.transform.flip(pg.transform.rotozoom(pg.image.load("fig/3.png"), -45, 1), True, False),  # 右上（反転）
+    (-5, 5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 45, 1),    # 左下
+    (5, 5): pg.transform.flip(pg.transform.rotozoom(pg.image.load("fig/3.png"), 45, 1), True, False),  # 右下（反転）
+}
+
+    # sum_mvが指定されていない場合のデフォルト（上向き）
+    return kk_images.get(sum_mv, pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1))
+
+
+
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.image.load("fig/pg_bg.jpg")    
-    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    bg_img = pg.image.load("fig/pg_bg.jpg")
+    
+    # 初期こうかとん画像
+    kk_img = get_kk_img((0, 0))
     kk_rct = kk_img.get_rect()
     kk_rct.center = 300, 200
     
-    # 爆弾の画像と加速度リストを初期化
     bb_imgs, bb_accs = init_bb_imgs()
-    
     bb_rct = bb_imgs[0].get_rect()
     bb_rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
     
@@ -86,53 +120,48 @@ def main():
 
     while True:
         for event in pg.event.get():
-            if event.type == pg.QUIT: 
+            if event.type == pg.QUIT:
                 return
-        screen.blit(bg_img, [0, 0]) 
+
+        screen.blit(bg_img, [0, 0])
         
         if kk_rct.colliderect(bb_rct):  # こうかとんと爆弾が重なっていたら
             game_over(screen)
             return 
-
+        
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
         for key, tpl in DELTA.items():
             if key_lst[key]:
                 sum_mv[0] += tpl[0]
                 sum_mv[1] += tpl[1]
+
+        # 移動に応じて画像を変更
+        kk_img = get_kk_img(tuple(sum_mv))
         kk_rct.move_ip(sum_mv)
         
-        # こうかとんが画面外なら、元の場所に戻す
         if check_bound(kk_rct) != (True, True):
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
+
         screen.blit(kk_img, kk_rct)
         
-                # 爆弾の拡大と加速を適用
+        # 爆弾の拡大と加速を適用
         idx = min(tmr // 500, 9)
-        current_bb_img = bb_imgs[idx]  # 現在の爆弾画像を選択
-        
-        # サイズ変更後の中心位置を維持
-        center = bb_rct.center  
-        bb_rct = current_bb_img.get_rect(center=center)  # 新しいサイズに合わせてRectを更新
-        
-        # 爆弾を動かす
+        current_bb_img = bb_imgs[idx]
+        center = bb_rct.center
+        bb_rct = current_bb_img.get_rect(center=center)
         bb_rct.move_ip(vx, vy)
         yoko, tate = check_bound(bb_rct)
-        if not yoko:  # 横にはみ出る
+        if not yoko:
             vx *= -1
-        if not tate:  # 縦にはみ出る
+        if not tate:
             vy *= -1
 
-        # 現在の爆弾画像を描画
         screen.blit(current_bb_img, bb_rct)
 
-        
-        screen.blit(bb_imgs[idx], bb_rct)
         pg.display.update()
         tmr += 1
         clock.tick(50)
-
-
 
 if __name__ == "__main__":
     pg.init()
