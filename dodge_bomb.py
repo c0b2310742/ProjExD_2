@@ -47,12 +47,9 @@ def game_over(screen):
     screen.blit(crying_kk_img, left_pos)
     screen.blit(crying_kk_img, right_pos)
     screen.blit(text, (WIDTH // 2 - 150, HEIGHT // 2 - 40))
-
     pg.display.update()  # 画面を更新
-
     # 5秒待機
     time.sleep(5)
-
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -77,7 +74,6 @@ def main():
         if kk_rct.colliderect(bb_rct):  #　こうかとんと爆弾重なっていたら
             game_over(screen)
             return 
-
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
         for key, tpl in DELTA.items():
