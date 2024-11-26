@@ -47,9 +47,25 @@ def game_over(screen):
     screen.blit(crying_kk_img, left_pos)
     screen.blit(crying_kk_img, right_pos)
     screen.blit(text, (WIDTH // 2 - 150, HEIGHT // 2 - 40))
+
     pg.display.update()  # 画面を更新
+
     # 5秒待機
     time.sleep(5)
+
+def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
+    """
+    サイズの異なる爆弾Surfaceを要素としたリストと加速度リストを返す
+    """
+    accs = [a for a in range(1, 11)]  # 加速度リスト（1から10まで）
+    bb_imgs = []  # 爆弾画像リスト
+    for r in range(1, 11):  # サイズが異なる爆弾を作成
+        bb_img = pg.Surface((20 * r, 20 * r))
+        pg.draw.circle(bb_img, (255, 0, 0), (10 * r, 10 * r), 10 * r)
+        bb_img.set_colorkey((0, 0, 0))  # 黒色を透明化
+        bb_imgs.append(bb_img)
+    return bb_imgs, accs
+
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -57,23 +73,27 @@ def main():
     kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
     kk_rct = kk_img.get_rect()
     kk_rct.center = 300, 200
-    bb_img = pg.Surface((20, 20)) # 爆弾用の空Surface
-    pg.draw.circle(bb_img, (255, 0, 0), (10, 10), 10) #爆弾円を描く
-    bb_img.set_colorkey((0, 0, 0))
-    bb_rct = bb_img.get_rect() #爆弾rectの抽出
+    
+    # 爆弾の画像と加速度リストを初期化
+    bb_imgs, bb_accs = init_bb_imgs()
+    
+    bb_rct = bb_imgs[0].get_rect()
     bb_rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
+    
     vx, vy = +5, -5
     clock = pg.time.Clock()
     tmr = 0
+
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT: 
                 return
         screen.blit(bg_img, [0, 0]) 
-
-        if kk_rct.colliderect(bb_rct):  #　こうかとんと爆弾重なっていたら
+        
+        if kk_rct.colliderect(bb_rct):  # こうかとんと爆弾が重なっていたら
             game_over(screen)
             return 
+
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
         for key, tpl in DELTA.items():
@@ -81,20 +101,37 @@ def main():
                 sum_mv[0] += tpl[0]
                 sum_mv[1] += tpl[1]
         kk_rct.move_ip(sum_mv)
-        #こうかとんが画面外なら、元の場所に戻す
+        
+        # こうかとんが画面外なら、元の場所に戻す
         if check_bound(kk_rct) != (True, True):
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
         screen.blit(kk_img, kk_rct)
-        bb_rct.move_ip(vx,vy) #爆弾動く
+        
+                # 爆弾の拡大と加速を適用
+        idx = min(tmr // 500, 9)
+        current_bb_img = bb_imgs[idx]  # 現在の爆弾画像を選択
+        
+        # サイズ変更後の中心位置を維持
+        center = bb_rct.center  
+        bb_rct = current_bb_img.get_rect(center=center)  # 新しいサイズに合わせてRectを更新
+        
+        # 爆弾を動かす
+        bb_rct.move_ip(vx, vy)
         yoko, tate = check_bound(bb_rct)
-        if not yoko:# 縦にはみ出る
+        if not yoko:  # 横にはみ出る
             vx *= -1
-        if not tate:# 横にはみ出る
+        if not tate:  # 縦にはみ出る
             vy *= -1
-        screen.blit(bb_img, bb_rct)
+
+        # 現在の爆弾画像を描画
+        screen.blit(current_bb_img, bb_rct)
+
+        
+        screen.blit(bb_imgs[idx], bb_rct)
         pg.display.update()
         tmr += 1
         clock.tick(50)
+
 
 
 if __name__ == "__main__":
