@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import sys
@@ -28,7 +29,12 @@ def check_bound(rct: pg.Rect) -> tuple[bool, bool]:
         tate = False
     return yoko, tate
 
-def game_over(screen):
+def game_over(screen: pg.Surface) -> None:
+    """
+    ゲームオーバー時に画面に「Game Over」を表示し、泣いているこうかとんを描画する。
+    引数：screen - 描画するスクリーンSurface
+    """
+
     # フォント設定
     font = pg.font.Font(None, 80)
     text = font.render("GAME OVER", True, (255, 255, 255))
@@ -70,7 +76,6 @@ def get_kk_img(sum_mv: tuple[int, int]) -> pg.Surface:
     """
     移動量の合計値タプルに対応する向きの画像Surfaceを返す
     """
-
     kk_images = {
     (0, -5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1),      # 上
     (0, 5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1),     # 下
@@ -81,10 +86,27 @@ def get_kk_img(sum_mv: tuple[int, int]) -> pg.Surface:
     (-5, 5): pg.transform.rotozoom(pg.image.load("fig/3.png"), 45, 1),    # 左下
     (5, 5): pg.transform.flip(pg.transform.rotozoom(pg.image.load("fig/3.png"), 45, 1), True, False),  # 右下（反転）
 }
-
     # sum_mvが指定されていない場合のデフォルト（上向き）
     return kk_images.get(sum_mv, pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1))
 
+
+def calc_orientation(org: pg.Rect, dst: pg.Rect, current_xy: tuple[float, float]) -> tuple[float, float]:
+    """
+    orgから見て、dstがどこにあるかを計算し、方向ベクトルを返す
+    引数：org - 始点Rect
+          dst - 終点Rect
+          current_xy - 現在の移動速度ベクトル
+    戻り値：方向ベクトル (vx, vy)
+    """
+    dx = dst.centerx - org.centerx
+    dy = dst.centery - org.centery
+    norm = math.sqrt(dx**2 + dy**2)  # ノルム（距離）
+    if norm != 0:  # 距離が0でないときにのみ正規化
+        vx = dx / norm * 5  # 速度調整（5は速度の係数）
+        vy = dy / norm * 5
+    else:
+        vx, vy = 0, 0
+    return vx, vy
 
 
 def main():
@@ -137,6 +159,11 @@ def main():
         current_bb_img = bb_imgs[idx]
         center = bb_rct.center
         bb_rct = current_bb_img.get_rect(center=center)
+
+        # 追従型爆弾の速度計算
+        vx, vy = calc_orientation(bb_rct, kk_rct, (vx, vy))
+
+        # 画面端の判定
         bb_rct.move_ip(vx, vy)
         yoko, tate = check_bound(bb_rct)
         if not yoko:
@@ -145,6 +172,8 @@ def main():
             vy *= -1
 
         screen.blit(current_bb_img, bb_rct)
+
+        
 
         pg.display.update()
         tmr += 1
